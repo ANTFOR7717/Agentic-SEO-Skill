@@ -578,13 +578,37 @@ def render_recommendations(section_data: dict) -> str:
     opps = section_data.get("opportunities", [])
     if isinstance(opps, list):
         items.extend(opps)
-    if not items:
-        return ''
-    html = '<div style="margin-top:16px"><h3 style="font-size:0.95rem;margin-bottom:8px;">💡 Recommendations</h3>'
-    for item in items[:15]:
-        item_str = str(item) if not isinstance(item, str) else item
-        html += f'<div class="issue-item info"><span class="issue-badge">FIX</span> {item_str}</div>'
-    html += '</div>'
+
+    # Render structured issues (used by entity_checker, hreflang_checker, etc.)
+    issues = section_data.get("issues", [])
+    issues_html = ""
+    if isinstance(issues, list) and issues:
+        severity_map = {"critical": "critical", "high": "critical", "warning": "warning", "medium": "warning", "info": "info", "low": "info"}
+        for issue in issues[:15]:
+            if isinstance(issue, dict):
+                sev = severity_map.get(issue.get("severity", "info").lower(), "info")
+                badge = html_lib.escape(issue.get("severity", "INFO").upper(), quote=True)
+                finding = html_lib.escape(str(issue.get("finding", "")), quote=True)
+                fix = html_lib.escape(str(issue.get("fix", "")), quote=True)
+                issues_html += (
+                    f'<div class="issue-item {sev}">'
+                    f'<span class="issue-badge">{badge}</span>'
+                    f'<div><strong>{finding}</strong>'
+                    f'{f"<br><span style=&quot;color:var(--text-muted)&quot;>Fix: {fix}</span>" if fix else ""}'
+                    f'</div></div>'
+                )
+            elif isinstance(issue, str):
+                items.append(issue)
+
+    html = ""
+    if issues_html:
+        html += f'<div style="margin-top:16px"><h3 style="font-size:0.95rem;margin-bottom:8px;">🔍 Issues Found</h3>{issues_html}</div>'
+    if items:
+        html += '<div style="margin-top:16px"><h3 style="font-size:0.95rem;margin-bottom:8px;">💡 Recommendations</h3>'
+        for item in items[:15]:
+            item_str = str(item) if not isinstance(item, str) else item
+            html += f'<div class="issue-item info"><span class="issue-badge">FIX</span> {item_str}</div>'
+        html += '</div>'
     return html
 
 
@@ -687,8 +711,16 @@ def generate_html(data: dict, scores: dict) -> str:
     for section_name, section_data in data["sections"].items():
         issues = section_data.get("issues", [])
         for issue in issues:
-            severity = "critical" if "🔴" in issue else "warning" if "⚠️" in issue else "info"
-            all_issues.append({"text": issue, "severity": severity, "section": section_name})
+            if isinstance(issue, dict):
+                # Structured issue from entity_checker, hreflang_checker, etc.
+                sev_raw = issue.get("severity", "info").lower()
+                severity_map = {"critical": "critical", "high": "critical", "warning": "warning", "medium": "warning", "info": "info", "low": "info"}
+                severity = severity_map.get(sev_raw, "info")
+                text = f"{issue.get('finding', '')} — Fix: {issue.get('fix', '')}" if issue.get('fix') else issue.get('finding', str(issue))
+                all_issues.append({"text": text, "severity": severity, "section": section_name})
+            elif isinstance(issue, str):
+                severity = "critical" if "🔴" in issue else "warning" if "⚠️" in issue else "info"
+                all_issues.append({"text": issue, "severity": severity, "section": section_name})
 
     critical_count = sum(1 for i in all_issues if i["severity"] == "critical")
     warning_count = sum(1 for i in all_issues if i["severity"] == "warning")
@@ -1259,6 +1291,7 @@ tr:hover td {{ background: rgba(99,102,241,0.03); }}
                 <div class="summary-item"><div class="val">{psi.get("field_data", psi.get("lab_data", {})).get("INP", psi.get("field_data", psi.get("lab_data", {})).get("TBT", "?"))}</div><div class="lbl">INP/TBT</div></div>
                 <div class="summary-item"><div class="val">{psi.get("field_data", psi.get("lab_data", {})).get("CLS", "?")}</div><div class="lbl">CLS</div></div>
             </div>
+            {'<div class="issue-item warning"><span class="issue-badge">NOTE</span> <div><strong>PageSpeed API returned an error or was rate-limited.</strong><br><span style="color:var(--text-muted)">Try running <code>python3 scripts/pagespeed.py URL --api-key YOUR_KEY</code> manually, or rerun the report later. The LLM can still analyze Core Web Vitals by reading the page directly.</span></div></div>' if psi.get('error') or psi.get('performance_score', 0) == 0 else ''}
             {render_recommendations(psi)}
         </div>
     </div>
