@@ -53,9 +53,11 @@ gh auth status -h github.com
 - If token is missing/invalid, continue with partial checks and mark API-based
   findings as `Unknown` or `Likely`.
 - Generate query/competitor inputs via LLM reasoning and/or web search before
-  benchmark stages:
+  benchmark stages when possible:
   - query list (`--query` / `--query-file`)
   - optional explicit competitors (`--competitor owner/repo`)
+- If queries are not provided, `github_seo_report.py` auto-derives repo-specific
+  benchmark queries from repo slug/metadata/title analysis.
 
 ### 2. Run Evidence Scripts
 
@@ -70,6 +72,8 @@ python3 github_competitor_research.py --repo <owner/repo> --query "<llm_or_web_q
 python3 github_competitor_research.py --repo <owner/repo> --competitor <owner/repo> --competitor <owner/repo> --provider auto --json
 python3 github_traffic_archiver.py --repo <owner/repo> --provider auto --json
 python3 github_seo_report.py --repo <owner/repo> --provider auto --markdown GITHUB-SEO-REPORT.md
+# Optional: cap auto-derived query count used by github_seo_report.py
+# python3 github_seo_report.py --repo <owner/repo> --provider auto --auto-query-max 8 --markdown GITHUB-SEO-REPORT.md
 # Optional explicit verifier step for custom pipelines:
 # python3 finding_verifier.py --findings-json raw-findings.json --json
 ```

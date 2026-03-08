@@ -11,6 +11,7 @@ Usage:
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -20,6 +21,21 @@ from github_api import get_token, resolve_repo
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+QUERY_STOP_WORDS = {
+    "a",
+    "an",
+    "and",
+    "for",
+    "from",
+    "in",
+    "into",
+    "of",
+    "on",
+    "or",
+    "the",
+    "to",
+    "with",
+}
 
 
 def utc_now_iso() -> str:
@@ -43,7 +59,106 @@ def run_json_script(script_name: str, extra_args: list) -> dict:
         return {"ok": False, "error": f"Invalid JSON from {script_name}: {exc}", "returncode": 1}
 
 
-def collect_inputs(args, repo: str, token: str) -> dict:
+def _normalize_query_phrase(text: str) -> str:
+    tokens = re.findall(r"[a-z0-9]+", (text or "").lower())
+    filtered = [t for t in tokens if len(t) > 1 and t not in QUERY_STOP_WORDS]
+    if not filtered:
+        filtered = [t for t in tokens if len(t) > 1]
+    return " ".join(filtered[:6]).strip()
+
+
+def _dedupe_queries(values: list) -> list:
+    out = []
+    seen = set()
+    for item in values:
+        cleaned = " ".join((item or "").split()).strip()
+        if not cleaned:
+            continue
+        key = cleaned.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(cleaned)
+    return out
+
+
+def load_explicit_queries(args) -> tuple[list, list]:
+    queries = []
+    warnings = []
+    if args.query:
+        queries.extend([q.strip() for q in args.query if q and q.strip()])
+    if args.query_file:
+        if not os.path.exists(args.query_file):
+            warnings.append(f"Query file not found: {args.query_file}")
+        else:
+            try:
+                with open(args.query_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        text = line.strip()
+                        if text and not text.startswith("#"):
+                            queries.append(text)
+            except Exception as exc:
+                warnings.append(f"Could not read query file `{args.query_file}`: {exc}")
+    return _dedupe_queries(queries), warnings
+
+
+def derive_auto_queries(repo: str, repo_audit_data: dict, max_queries: int = 6) -> list:
+    metadata = (repo_audit_data or {}).get("metadata", {}) or {}
+    title_analysis = (repo_audit_data or {}).get("title_analysis", {}) or {}
+    owner, _, repo_name = repo.partition("/")
+
+    candidates = []
+    for seed in (
+        repo_name,
+        metadata.get("name"),
+        title_analysis.get("recommended_repo_slug"),
+        title_analysis.get("recommended_display_title"),
+    ):
+        phrase = _normalize_query_phrase(seed or "")
+        if phrase:
+            candidates.append(phrase)
+
+    topics = metadata.get("topics") or []
+    for topic in topics[:10]:
+        phrase = _normalize_query_phrase(topic)
+        if phrase:
+            candidates.append(phrase)
+
+    keywords = []
+    for raw in (title_analysis.get("search_intent_keywords") or [])[:14]:
+        token = _normalize_query_phrase(raw)
+        if token:
+            keywords.append(token.split()[0])
+    keywords = _dedupe_queries(keywords)
+
+    if len(keywords) >= 2:
+        candidates.append(" ".join(keywords[:2]))
+    if len(keywords) >= 3:
+        candidates.append(" ".join(keywords[:3]))
+    for i in range(0, max(0, len(keywords) - 1)):
+        candidates.append(" ".join(keywords[i:i + 2]))
+
+    core_tokens = _normalize_query_phrase(repo_name).split()
+    for kw in keywords[:6]:
+        if kw in core_tokens:
+            continue
+        blend = _dedupe_queries(core_tokens[:2] + [kw])
+        if len(blend) >= 2:
+            candidates.append(" ".join(blend))
+
+    owner_phrase = _normalize_query_phrase(owner)
+    if owner_phrase and core_tokens:
+        candidates.append(f"{owner_phrase} {' '.join(core_tokens[:2])}".strip())
+
+    final = _dedupe_queries(candidates)
+    if not final:
+        slug_fallback = _normalize_query_phrase(repo_name)
+        if slug_fallback:
+            final = [slug_fallback]
+    return final[: max(1, max_queries)]
+
+
+def collect_inputs(args, repo: str, token: str, queries: list) -> dict:
     common = ["--repo", repo, "--provider", args.provider]
     if token:
         common += ["--token", token]
@@ -65,12 +180,8 @@ def collect_inputs(args, repo: str, token: str) -> dict:
 
     benchmark_args = common[:]
     query_supplied = False
-    if args.query:
-        for query in args.query:
-            benchmark_args += ["--query", query]
-            query_supplied = True
-    if args.query_file:
-        benchmark_args += ["--query-file", args.query_file]
+    for query in queries:
+        benchmark_args += ["--query", query]
         query_supplied = True
     benchmark_args += ["--max-pages", str(args.max_pages), "--per-page", str(args.per_page)]
 
@@ -88,6 +199,18 @@ def collect_inputs(args, repo: str, token: str) -> dict:
         tasks["competitor_research"] = ["github_competitor_research.py", competitor_args]
 
     return tasks
+
+
+def apply_result(result_key: str, result: dict, limitations: list):
+    if not result.get("ok"):
+        limitations.append(f"{result_key} failed: {result.get('error', 'unknown')}")
+        return
+    for item in result["data"].get("limitations", []):
+        limitations.append(f"{result_key}: {item}")
+    if result_key == "traffic_archiver":
+        snapshot = result["data"].get("snapshot", {})
+        for item in snapshot.get("limitations", []):
+            limitations.append(f"{result_key}: {item}")
 
 
 def extract_score(outputs: dict) -> dict:
@@ -264,6 +387,21 @@ def build_markdown(report: dict) -> str:
         status = "ok" if payload.get("ok") else f"failed: {payload.get('error', 'unknown')}"
         lines.append(f"| {key} | {status} |")
     lines.append("")
+
+    query_inputs = report.get("query_inputs", {}) or {}
+    if query_inputs:
+        lines.append("## Query Discovery")
+        lines.append("")
+        lines.append(f"- Mode: `{query_inputs.get('mode', 'unknown')}`")
+        source = query_inputs.get("source")
+        if source:
+            lines.append(f"- Source: `{source}`")
+        queries = query_inputs.get("queries", []) or []
+        if queries:
+            lines.append(f"- Queries: `{'; '.join(queries)}`")
+        else:
+            lines.append("- Queries: `none`")
+        lines.append("")
 
     if report["limitations"]:
         lines.append("## Limitations")
@@ -442,6 +580,12 @@ def main():
     parser.add_argument("--max-pages", type=int, default=2, help="Search pages per query (default: 2).")
     parser.add_argument("--per-page", type=int, default=50, help="Search results per page (default: 50).")
     parser.add_argument("--competitor-top-n", type=int, default=6, help="Competitors to analyze in depth (default: 6).")
+    parser.add_argument(
+        "--auto-query-max",
+        type=int,
+        default=6,
+        help="Maximum auto-derived benchmark queries when explicit queries are not provided (default: 6).",
+    )
     parser.add_argument("--archive-dir", default=".github-seo-data", help="Traffic archive directory.")
     parser.add_argument("--no-archive-write", action="store_true", help="Do not write traffic archive files.")
     parser.add_argument("--markdown", default="GITHUB-SEO-REPORT.md", help="Output markdown path.")
@@ -456,30 +600,55 @@ def main():
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(2)
 
-    plan = collect_inputs(args=args, repo=repo, token=token)
     outputs = {}
     limitations = []
+    explicit_queries, query_warnings = load_explicit_queries(args)
+    limitations.extend(query_warnings)
+
+    repo_audit_args = ["--repo", repo, "--provider", args.provider]
+    if token:
+        repo_audit_args += ["--token", token]
+    outputs["repo_audit"] = run_json_script("github_repo_audit.py", repo_audit_args)
+    apply_result("repo_audit", outputs["repo_audit"], limitations)
+
+    query_mode = "explicit" if explicit_queries else "none"
+    query_source = "cli: --query/--query-file" if explicit_queries else ""
+    benchmark_queries = explicit_queries[:]
+
+    if not benchmark_queries:
+        repo_audit_data = outputs.get("repo_audit", {}).get("data", {}) if outputs.get("repo_audit", {}).get("ok") else {}
+        benchmark_queries = derive_auto_queries(
+            repo=repo,
+            repo_audit_data=repo_audit_data,
+            max_queries=max(1, args.auto_query_max),
+        )
+        if benchmark_queries:
+            query_mode = "auto-derived"
+            query_source = "repo slug + metadata + title analysis"
+            limitations.append(
+                "search_benchmark: no explicit query supplied; using auto-derived repo-specific benchmark queries."
+            )
+        else:
+            limitations.append(
+                "search_benchmark skipped: could not derive benchmark queries from repository slug/metadata. Provide `--query`/`--query-file`."
+            )
+
+    plan = collect_inputs(args=args, repo=repo, token=token, queries=benchmark_queries)
 
     for key, (script_name, extra_args) in plan.items():
+        if key in outputs:
+            continue
         result = run_json_script(script_name, extra_args)
         outputs[key] = result
-        if not result.get("ok"):
-            limitations.append(f"{key} failed: {result.get('error', 'unknown')}")
-        else:
-            for item in result["data"].get("limitations", []):
-                limitations.append(f"{key}: {item}")
-            if key == "traffic_archiver":
-                snapshot = result["data"].get("snapshot", {})
-                for item in snapshot.get("limitations", []):
-                    limitations.append(f"{key}: {item}")
+        apply_result(key, result, limitations)
 
     if "search_benchmark" not in plan:
         limitations.append(
-            "search_benchmark skipped: provide `--query`/`--query-file` generated by LLM or web-search discovery."
+            "search_benchmark skipped: provide `--query`/`--query-file` (or ensure repo metadata supports auto query derivation)."
         )
     if "competitor_research" not in plan:
         limitations.append(
-            "competitor_research skipped: provide `--query`/`--query-file` or explicit `--competitor` repo list."
+            "competitor_research skipped: provide `--competitor` repo list or benchmark queries."
         )
 
     report = {
@@ -504,6 +673,11 @@ def main():
         "verified_count": verification_result.get("verified_count", len(report["findings"])),
         "dropped_count": len(verification_result.get("dropped", [])),
         "dropped": verification_result.get("dropped", []),
+    }
+    report["query_inputs"] = {
+        "mode": query_mode,
+        "source": query_source,
+        "queries": benchmark_queries,
     }
     report["title_analysis"] = outputs.get("repo_audit", {}).get("data", {}).get("title_analysis", {})
     report["backlink_plan"] = build_backlink_plan(outputs)

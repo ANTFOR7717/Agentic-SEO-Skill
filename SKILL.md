@@ -140,12 +140,15 @@ python3 <SKILL_DIR>/scripts/article_seo.py <url> --keyword "<optional_target_key
 python3 <SKILL_DIR>/scripts/github_repo_audit.py --repo <owner/repo> --provider auto --json
 python3 <SKILL_DIR>/scripts/github_readme_lint.py README.md --json
 python3 <SKILL_DIR>/scripts/github_community_health.py --repo <owner/repo> --provider auto --json
-# Benchmark/competitor inputs should be provided by LLM/web-search discovery.
+# Benchmark/competitor inputs should be provided by LLM/web-search discovery when possible.
+# If omitted, github_seo_report.py auto-derives repo-specific benchmark queries.
 python3 <SKILL_DIR>/scripts/github_search_benchmark.py --repo <owner/repo> --query "<llm_or_web_query>" --provider auto --json
 python3 <SKILL_DIR>/scripts/github_competitor_research.py --repo <owner/repo> --query "<llm_or_web_query>" --provider auto --top-n 6 --json
 python3 <SKILL_DIR>/scripts/github_competitor_research.py --repo <owner/repo> --competitor <owner/repo> --competitor <owner/repo> --provider auto --json
 python3 <SKILL_DIR>/scripts/github_traffic_archiver.py --repo <owner/repo> --provider auto --archive-dir .github-seo-data --json
 python3 <SKILL_DIR>/scripts/github_seo_report.py --repo <owner/repo> --provider auto --markdown GITHUB-SEO-REPORT.md --json
+# Optional: increase/reduce auto-derived query volume (default: 6)
+# python3 <SKILL_DIR>/scripts/github_seo_report.py --repo <owner/repo> --provider auto --auto-query-max 8 --markdown GITHUB-SEO-REPORT.md --json
 ```
 
 If a check fails due network, DNS, permissions, or API rate limits:
