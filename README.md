@@ -201,7 +201,7 @@ Here's how specific phrases map to the skill's capabilities:
 | "Find content gaps" / "competitor analysis" | 📊 Gap analysis | None (LLM reasoning) | `competitor_gap.py` |
 | "Check for duplicates" / "thin content" | 📋 Dupe check | **Content** | `duplicate_content.py` |
 | "GSC data" / "Search Console" | 📈 GSC only | None | `gsc_checker.py` |
-| "GitHub SEO" / "optimize this repo" | 🐙 Repository | **GitHub Analyst** + **Benchmark** + **Data** | `github_repo_audit.py`, `github_readme_lint.py`, `github_community_health.py`, `github_search_benchmark.py`, `github_traffic_archiver.py`, `github_seo_report.py` |
+| "GitHub SEO" / "optimize this repo" | 🐙 Repository | **GitHub Analyst** + **Benchmark** + **Data** | `github_repo_audit.py`, `github_readme_lint.py`, `github_community_health.py`, `github_search_benchmark.py`, `github_competitor_research.py`, `github_traffic_archiver.py`, `github_seo_report.py` |
 
 ### Domain vs URL vs Blog Post — What's Different?
 
@@ -419,6 +419,7 @@ python3 scripts/github_repo_audit.py --repo owner/repo --provider auto --json
 python3 scripts/github_readme_lint.py README.md --json
 python3 scripts/github_community_health.py --repo owner/repo --provider auto --json
 python3 scripts/github_search_benchmark.py --repo owner/repo --query "seo skill" --provider auto --json
+python3 scripts/github_competitor_research.py --repo owner/repo --query "seo skill" --provider auto --top-n 6 --json
 python3 scripts/github_traffic_archiver.py --repo owner/repo --provider auto --archive-dir .github-seo-data --json
 python3 scripts/github_seo_report.py --repo owner/repo --provider auto --markdown GITHUB-SEO-REPORT.md --json
 ```

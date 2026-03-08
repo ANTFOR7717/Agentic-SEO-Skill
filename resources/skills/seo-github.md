@@ -47,6 +47,7 @@ python3 github_repo_audit.py --repo <owner/repo> --provider auto --json
 python3 github_readme_lint.py README.md --json
 python3 github_community_health.py --repo <owner/repo> --provider auto --json
 python3 github_search_benchmark.py --repo <owner/repo> --query "<query>" --provider auto --json
+python3 github_competitor_research.py --repo <owner/repo> --query "<query>" --provider auto --top-n 6 --json
 python3 github_traffic_archiver.py --repo <owner/repo> --provider auto --json
 python3 github_seo_report.py --repo <owner/repo> --provider auto --markdown GITHUB-SEO-REPORT.md
 ```
@@ -57,7 +58,8 @@ python3 github_seo_report.py --repo <owner/repo> --provider auto --markdown GITH
 - Title strategy: underscore vs hyphen checks, intent-keyword extraction, suggested slug/title.
 - README SEO and conversion: heading structure, intent alignment, CTAs, proof sections.
 - Community trust: governance files and contribution readiness.
-- Search benchmarking: target query positions and competitor gap signals.
+- Search benchmarking: target query positions and sampled competitors.
+- Competitor research: topic overlaps, README pattern gaps, and strategy opportunities.
 - Traffic trend readiness: archival freshness and retention compliance.
 - Backlink distribution: channel suggestions (Medium/blog/dev communities), post title ideas, and anchor-mix guidance.
 
