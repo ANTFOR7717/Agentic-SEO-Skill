@@ -424,10 +424,12 @@ python3 scripts/competitor_gap.py "$URL" --competitor https://competitor.com --j
 python3 scripts/github_repo_audit.py --repo owner/repo --provider auto --json
 python3 scripts/github_readme_lint.py README.md --json
 python3 scripts/github_community_health.py --repo owner/repo --provider auto --json
-python3 scripts/github_search_benchmark.py --repo owner/repo --query "seo skill" --provider auto --json
-python3 scripts/github_competitor_research.py --repo owner/repo --query "seo skill" --provider auto --top-n 6 --json
+# Provide query/competitor inputs from LLM/web-search discovery:
+python3 scripts/github_search_benchmark.py --repo owner/repo --query "<llm_or_web_query>" --provider auto --json
+python3 scripts/github_competitor_research.py --repo owner/repo --query "<llm_or_web_query>" --provider auto --top-n 6 --json
+python3 scripts/github_competitor_research.py --repo owner/repo --competitor owner/repo --competitor owner/repo --provider auto --json
 python3 scripts/github_traffic_archiver.py --repo owner/repo --provider auto --archive-dir .github-seo-data --json
-python3 scripts/github_seo_report.py --repo owner/repo --provider auto --markdown GITHUB-SEO-REPORT.md --json
+python3 scripts/github_seo_report.py --repo owner/repo --query "<llm_or_web_query>" --provider auto --markdown GITHUB-SEO-REPORT.md --json
 
 # Generic verifier stage (can be used by any workflow before final reporting)
 python3 scripts/finding_verifier.py --findings-json raw-findings.json --json

@@ -52,6 +52,10 @@ gh auth status -h github.com
 - Check whether token-based API access is available.
 - If token is missing/invalid, continue with partial checks and mark API-based
   findings as `Unknown` or `Likely`.
+- Generate query/competitor inputs via LLM reasoning and/or web search before
+  benchmark stages:
+  - query list (`--query` / `--query-file`)
+  - optional explicit competitors (`--competitor owner/repo`)
 
 ### 2. Run Evidence Scripts
 
@@ -61,8 +65,9 @@ Run scripts from `<SKILL_DIR>/scripts/`:
 python3 github_repo_audit.py --repo <owner/repo> --provider auto --json
 python3 github_readme_lint.py README.md --json
 python3 github_community_health.py --repo <owner/repo> --provider auto --json
-python3 github_search_benchmark.py --repo <owner/repo> --query "<query>" --provider auto --json
-python3 github_competitor_research.py --repo <owner/repo> --query "<query>" --provider auto --top-n 6 --json
+python3 github_search_benchmark.py --repo <owner/repo> --query "<llm_or_web_query>" --provider auto --json
+python3 github_competitor_research.py --repo <owner/repo> --query "<llm_or_web_query>" --provider auto --top-n 6 --json
+python3 github_competitor_research.py --repo <owner/repo> --competitor <owner/repo> --competitor <owner/repo> --provider auto --json
 python3 github_traffic_archiver.py --repo <owner/repo> --provider auto --json
 python3 github_seo_report.py --repo <owner/repo> --provider auto --markdown GITHUB-SEO-REPORT.md
 # Optional explicit verifier step for custom pipelines:
