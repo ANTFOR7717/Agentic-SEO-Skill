@@ -428,6 +428,9 @@ python3 scripts/github_search_benchmark.py --repo owner/repo --query "seo skill"
 python3 scripts/github_competitor_research.py --repo owner/repo --query "seo skill" --provider auto --top-n 6 --json
 python3 scripts/github_traffic_archiver.py --repo owner/repo --provider auto --archive-dir .github-seo-data --json
 python3 scripts/github_seo_report.py --repo owner/repo --provider auto --markdown GITHUB-SEO-REPORT.md --json
+
+# Generic verifier stage (can be used by any workflow before final reporting)
+python3 scripts/finding_verifier.py --findings-json raw-findings.json --json
 ```
 
 Generate a single HTML dashboard if needed:

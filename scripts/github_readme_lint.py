@@ -9,11 +9,14 @@ Usage:
 """
 
 import argparse
+import base64
 import json
 import os
 import re
 import sys
 from datetime import datetime, timezone
+
+from github_api import GitHubAPIError, fetch_json, get_token, resolve_repo
 
 
 DEFAULT_INTENTS = [
@@ -34,17 +37,72 @@ def read_text(path: str) -> str:
         return f.read()
 
 
+def looks_like_placeholder(text: str) -> bool:
+    value = (text or "").strip().lower()
+    if value in {"404", "404: not found", "not found"}:
+        return True
+    if value.startswith("404:"):
+        return True
+    if value.startswith("<html") and "not found" in value:
+        return True
+    return False
+
+
+def fetch_readme_from_repo(repo: str, token: str, provider: str) -> str:
+    response = fetch_json(f"/repos/{repo}/readme", token=token, provider=provider, timeout=30)
+    payload = response.get("data", {})
+    content = payload.get("content") or ""
+    if not content:
+        return ""
+    raw = base64.b64decode(content.encode("utf-8"), validate=False)
+    return raw.decode("utf-8", errors="replace")
+
+
 def strip_code_fences(text: str) -> str:
-    return re.sub(r"```.*?```", "", text, flags=re.DOTALL)
+    text = re.sub(r"(?ms)^```[\s\S]*?^```[ \t]*$", "", text)
+    text = re.sub(r"(?ms)^~~~[\s\S]*?^~~~[ \t]*$", "", text)
+    return text
 
 
 def extract_headings(markdown: str) -> list:
     headings = []
-    for i, line in enumerate(markdown.splitlines(), start=1):
+    lines = markdown.splitlines()
+    for i, line in enumerate(lines, start=1):
         m = re.match(r"^(#{1,6})\s+(.+?)\s*$", line.strip())
         if m:
             headings.append({"line": i, "level": len(m.group(1)), "text": m.group(2).strip()})
+            continue
+
+        # Setext headings:
+        # Title
+        # =====
+        if i < len(lines):
+            next_line = lines[i].strip()
+            if line.strip() and re.match(r"^(=+|-+)\s*$", next_line):
+                level = 1 if next_line.startswith("=") else 2
+                headings.append({"line": i, "level": level, "text": line.strip()})
     return headings
+
+
+def count_code_blocks(markdown: str) -> int:
+    fenced_backticks = len(re.findall(r"(?ms)^```[\s\S]*?^```[ \t]*$", markdown))
+    fenced_tildes = len(re.findall(r"(?ms)^~~~[\s\S]*?^~~~[ \t]*$", markdown))
+    fenced_total = fenced_backticks + fenced_tildes
+
+    # Count indented code blocks (>=2 consecutive indented non-empty lines)
+    indented_total = 0
+    run = 0
+    for line in markdown.splitlines():
+        if re.match(r"^(    |\t)\S", line):
+            run += 1
+        else:
+            if run >= 2:
+                indented_total += 1
+            run = 0
+    if run >= 2:
+        indented_total += 1
+
+    return fenced_total + indented_total
 
 
 def extract_images(markdown: str) -> list:
@@ -154,7 +212,8 @@ def score_report(markdown: str, intents: list) -> dict:
     # Install + quickstart (20)
     install_score = 20
     install_markers = ("install", "quick start", "quickstart", "getting started", "setup")
-    if not any(any(marker in t for marker in install_markers) for t in heading_text):
+    has_install_section = any(any(marker in t for marker in install_markers) for t in heading_text)
+    if not has_install_section:
         install_score -= 14
         add_finding(
             findings,
@@ -164,7 +223,7 @@ def score_report(markdown: str, intents: list) -> dict:
             "No install or getting-started heading detected.",
             "Add a dedicated install section with copy-paste commands and prerequisites.",
         )
-    code_block_count = len(re.findall(r"```", markdown)) // 2
+    code_block_count = count_code_blocks(markdown)
     if code_block_count == 0:
         install_score -= 4
         add_finding(
@@ -172,7 +231,7 @@ def score_report(markdown: str, intents: list) -> dict:
             "Install + Quickstart",
             "Warning",
             "No code examples detected.",
-            "README contains zero fenced code blocks.",
+            "README contains zero detectable code blocks (fenced or indented).",
             "Add runnable command examples for setup and core usage.",
         )
     install_score = max(0, install_score)
@@ -180,7 +239,8 @@ def score_report(markdown: str, intents: list) -> dict:
     # Proof + credibility (15)
     proof_score = 15
     proof_markers = ("example", "output", "report", "screenshot", "demo", "result")
-    if not any(any(marker in t for marker in proof_markers) for t in heading_text):
+    has_examples_section = any(any(marker in t for marker in proof_markers) for t in heading_text)
+    if not has_examples_section:
         proof_score -= 8
         add_finding(
             findings,
@@ -206,6 +266,7 @@ def score_report(markdown: str, intents: list) -> dict:
     cta_score = 15
     cta_markers = ("contribut", "issue", "pull request", "support", "discussion", "star")
     cta_hits = sum(1 for marker in cta_markers if marker in markdown.lower())
+    has_contributing_section = "contribut" in markdown.lower()
     if cta_hits < 2:
         cta_score -= 9
         add_finding(
@@ -284,6 +345,9 @@ def score_report(markdown: str, intents: list) -> dict:
             "image_count": len(images),
             "images_missing_alt": len(missing_alt),
             "matched_intents_in_opening": matched_intents,
+            "has_install_section": has_install_section,
+            "has_examples_section": has_examples_section,
+            "has_contributing_section": has_contributing_section,
         },
         "category_scores": category_scores,
         "findings": findings,
@@ -308,21 +372,54 @@ def print_text(report: dict):
 def main():
     parser = argparse.ArgumentParser(description="README SEO and conversion linting for GitHub repositories.")
     parser.add_argument("readme_path", nargs="?", default="README.md", help="Path to README file (default: README.md)")
+    parser.add_argument("--repo", help="Repository slug or URL (owner/repo) for remote README fallback.")
+    parser.add_argument("--provider", choices=["auto", "api", "gh"], default="auto", help="GitHub data provider mode for README fallback.")
+    parser.add_argument("--token", help="GitHub token override. Prefer env vars GITHUB_TOKEN or GH_TOKEN.")
     parser.add_argument("--intent", action="append", help="Target intent phrase (repeatable).")
     parser.add_argument("--json", action="store_true", help="Output JSON.")
     parser.add_argument("--output", help="Write JSON report to file path.")
     args = parser.parse_args()
 
-    if not os.path.exists(args.readme_path):
-        print(f"Error: README file not found: {args.readme_path}", file=sys.stderr)
+    intents = args.intent if args.intent else DEFAULT_INTENTS
+    limitations = []
+    content_source = "local_file"
+    markdown = ""
+
+    if os.path.exists(args.readme_path):
+        markdown = read_text(args.readme_path)
+    else:
+        limitations.append(f"Local README file not found: {args.readme_path}")
+
+    needs_remote = (not markdown.strip()) or looks_like_placeholder(markdown)
+    if needs_remote and args.repo:
+        try:
+            token = get_token(args.token)
+            repo = resolve_repo(args.repo)
+            remote_md = fetch_readme_from_repo(repo=repo, token=token, provider=args.provider)
+            if remote_md.strip():
+                markdown = remote_md
+                content_source = "github_api"
+                limitations.append("Used remote README fallback due missing/placeholder local README.")
+        except GitHubAPIError as exc:
+            limitations.append(f"Remote README fallback failed: {exc}")
+
+    if looks_like_placeholder(markdown):
+        print(
+            "Error: README content appears to be placeholder/404. Provide valid README path or repo access for remote fallback.",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
-    intents = args.intent if args.intent else DEFAULT_INTENTS
-    markdown = read_text(args.readme_path)
+    if not markdown.strip():
+        print("Error: README content unavailable from local file and remote fallback.", file=sys.stderr)
+        sys.exit(2)
+
     scored = score_report(markdown=markdown, intents=intents)
     report = {
         "timestamp_utc": utc_now_iso(),
         "readme_path": args.readme_path,
+        "content_source": content_source,
+        "limitations": limitations,
         "intents": intents,
         **scored,
     }

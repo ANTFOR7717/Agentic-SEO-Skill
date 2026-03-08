@@ -15,6 +15,7 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 
+from finding_verifier import verify_findings
 from github_api import get_token, resolve_repo
 
 
@@ -60,9 +61,13 @@ def collect_inputs(args, repo: str, token: str) -> dict:
     if args.no_archive_write:
         traffic_args += ["--no-write"]
 
+    readme_args = [args.readme_path, "--repo", repo, "--provider", args.provider]
+    if token:
+        readme_args += ["--token", token]
+
     return {
         "repo_audit": ["github_repo_audit.py", common],
-        "readme_lint": ["github_readme_lint.py", [args.readme_path]],
+        "readme_lint": ["github_readme_lint.py", readme_args],
         "community_health": ["github_community_health.py", common],
         "search_benchmark": ["github_search_benchmark.py", benchmark_args],
         "competitor_research": ["github_competitor_research.py", competitor_args],
@@ -220,6 +225,12 @@ def build_markdown(report: dict) -> str:
     lines.append(f"- Generated (UTC): `{report['timestamp_utc']}`")
     lines.append(f"- Provider mode: `{report['provider']}`")
     lines.append(f"- Overall score: `{report['scores']['overall']}`")
+    verification = report.get("verification", {})
+    if verification:
+        lines.append(
+            f"- Verified findings: `{verification.get('verified_count', 0)}` "
+            f"(raw: `{verification.get('raw_count', 0)}`, dropped: `{verification.get('dropped_count', 0)}`)"
+        )
     lines.append("")
 
     lines.append("## Score Components")
@@ -246,15 +257,26 @@ def build_markdown(report: dict) -> str:
             lines.append(f"- {item}")
         lines.append("")
 
+    if verification and verification.get("dropped"):
+        lines.append("## Verifier Notes")
+        lines.append("")
+        lines.append("Suppressed findings due to contradiction/duplication checks:")
+        for item in verification.get("dropped", [])[:10]:
+            lines.append(f"- {item.get('finding')} ({item.get('reason')})")
+        lines.append("")
+
     lines.append("## Prioritized Findings")
     lines.append("")
     lines.append("| Severity | Source | Finding | Evidence | Fix |")
     lines.append("|----------|--------|---------|----------|-----|")
     for finding in report["findings"][:40]:
+        source = finding.get("source")
+        if finding.get("sources"):
+            source = ", ".join(finding.get("sources", []))
         lines.append(
             "| {severity} | {source} | {finding} | {evidence} | {fix} |".format(
                 severity=finding["severity"],
-                source=finding["source"],
+                source=source,
                 finding=finding["finding"].replace("|", "/"),
                 evidence=finding["evidence"].replace("|", "/"),
                 fix=finding["fix"].replace("|", "/"),
@@ -444,7 +466,20 @@ def main():
     }
     report["limitations"] = dedupe_preserve(report["limitations"])
     report["scores"] = extract_score(outputs)
-    report["findings"] = collect_findings(outputs)
+    raw_findings = collect_findings(outputs)
+    verification_result = verify_findings(
+        findings=raw_findings,
+        context={
+            "readme_metrics": outputs.get("readme_lint", {}).get("data", {}).get("metrics", {}) or {}
+        },
+    )
+    report["findings"] = verification_result.get("findings", [])
+    report["verification"] = {
+        "raw_count": verification_result.get("raw_count", len(raw_findings)),
+        "verified_count": verification_result.get("verified_count", len(report["findings"])),
+        "dropped_count": len(verification_result.get("dropped", [])),
+        "dropped": verification_result.get("dropped", []),
+    }
     report["title_analysis"] = outputs.get("repo_audit", {}).get("data", {}).get("title_analysis", {})
     report["backlink_plan"] = build_backlink_plan(outputs)
     report["markdown_path"] = args.markdown

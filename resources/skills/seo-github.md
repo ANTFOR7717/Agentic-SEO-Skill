@@ -65,6 +65,8 @@ python3 github_search_benchmark.py --repo <owner/repo> --query "<query>" --provi
 python3 github_competitor_research.py --repo <owner/repo> --query "<query>" --provider auto --top-n 6 --json
 python3 github_traffic_archiver.py --repo <owner/repo> --provider auto --json
 python3 github_seo_report.py --repo <owner/repo> --provider auto --markdown GITHUB-SEO-REPORT.md
+# Optional explicit verifier step for custom pipelines:
+# python3 finding_verifier.py --findings-json raw-findings.json --json
 ```
 
 ### 3. Analyze by Area
@@ -103,6 +105,7 @@ Optional:
 - Strategy synthesis: `resources/agents/seo-github-analyst.md`
 - Competitor/query benchmark: `resources/agents/seo-github-benchmark.md`
 - API collection/archival: `resources/agents/seo-github-data.md`
+- Final verification: `resources/agents/seo-verifier.md`
 
 ## Critical Rules
 

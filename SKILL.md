@@ -181,6 +181,7 @@ For comprehensive audits, read the relevant agent file from `resources/agents/` 
 | Schema Markup | [seo-schema.md](resources/agents/seo-schema.md) | Detection, validation, generation of JSON-LD structured data |
 | Sitemap | [seo-sitemap.md](resources/agents/seo-sitemap.md) | XML sitemap validation, generation, quality gates |
 | Visual Analysis | [seo-visual.md](resources/agents/seo-visual.md) | Screenshots, above-the-fold, responsiveness, layout |
+| Verifier (global) | [seo-verifier.md](resources/agents/seo-verifier.md) | Deduplicate findings, suppress contradictions, and validate evidence relevance before final report |
 
 ### Step 6 — Apply Quality Gates
 
@@ -192,6 +193,16 @@ Reference the quality standards in `resources/references/`:
 - **E-E-A-T framework**: Read [eeat-framework.md](resources/references/eeat-framework.md) for scoring criteria
 - **Google reference**: Read [google-seo-reference.md](resources/references/google-seo-reference.md) for quick reference
 - **LLM report rubric**: Read [llm-audit-rubric.md](resources/references/llm-audit-rubric.md) for mandatory evidence format, confidence labels, and output contract
+
+### Step 6.5 — Verify Findings (All Workflows)
+
+Before writing final reports, run verification:
+
+```bash
+python3 <SKILL_DIR>/scripts/finding_verifier.py --findings-json <raw_findings.json> --json
+```
+
+Use verified output for final report tables, not raw findings.
 
 ### Step 7 — Score and Report
 
