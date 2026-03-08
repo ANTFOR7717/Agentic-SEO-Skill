@@ -13,7 +13,9 @@ Usage:
 import argparse
 import json
 import os
+import re
 import sys
+from collections import Counter
 from datetime import datetime, timezone
 
 from github_api import (
@@ -22,6 +24,14 @@ from github_api import (
     get_token,
     resolve_repo,
 )
+
+STOP_WORDS = {
+    "the", "and", "for", "with", "from", "into", "this", "that", "your",
+    "are", "was", "were", "been", "being", "have", "has", "had", "will",
+    "would", "could", "should", "about", "over", "under", "between", "while",
+    "where", "when", "which", "what", "into", "than", "then", "them", "they",
+    "you", "our", "their", "its", "it's", "via", "all", "any", "not", "can",
+}
 
 
 def utc_now_iso() -> str:
@@ -101,6 +111,98 @@ def score_findings(findings: list) -> dict:
     return {"score": score, "rating": rating, "critical": critical, "warning": warning}
 
 
+def _tokenize(text: str) -> list:
+    words = re.findall(r"[a-z0-9]+", (text or "").lower())
+    return [w for w in words if len(w) > 1 and w not in STOP_WORDS]
+
+
+def _dedupe_keep_order(items: list) -> list:
+    out = []
+    seen = set()
+    for item in items:
+        if item not in seen:
+            out.append(item)
+            seen.add(item)
+    return out
+
+
+def _format_title_token(token: str) -> str:
+    mapping = {"seo": "SEO", "llm": "LLM", "ai": "AI", "api": "API", "github": "GitHub", "aeo": "AEO", "geo": "GEO"}
+    return mapping.get(token.lower(), token.capitalize())
+
+
+def analyze_title_strategy(repo_slug: str, metadata: dict) -> dict:
+    """Generate intent-based title and slug recommendations."""
+    repo_name = (metadata.get("name") or "").strip()
+    if not repo_name and repo_slug:
+        repo_name = repo_slug.split("/", 1)[-1]
+
+    description = (metadata.get("description") or "").strip()
+    topics = metadata.get("topics") or []
+
+    name_tokens = _tokenize(repo_name.replace("_", " ").replace("-", " "))
+    topic_tokens = []
+    for topic in topics:
+        topic_tokens.extend(_tokenize(topic.replace("-", " ").replace("_", " ")))
+
+    desc_tokens = _tokenize(description)
+    desc_freq = Counter(desc_tokens)
+    desc_priority = [word for word, _ in desc_freq.most_common(15)]
+
+    priority_seed = name_tokens + topic_tokens + desc_priority
+    keywords = _dedupe_keep_order(priority_seed)
+
+    for must_have in ("seo", "github", "skill"):
+        if must_have in keywords:
+            continue
+        if must_have == "github" and "repo" in keywords:
+            continue
+        if must_have in topic_tokens or must_have in name_tokens or must_have in desc_tokens:
+            keywords.insert(0, must_have)
+
+    if not keywords:
+        keywords = _tokenize(repo_slug.replace("/", " "))
+
+    slug_tokens = keywords[:5] if keywords else []
+    if "seo" in keywords and "seo" not in slug_tokens:
+        slug_tokens = ["seo"] + slug_tokens[:4]
+    slug_tokens = _dedupe_keep_order(slug_tokens)
+    recommended_slug = "-".join(slug_tokens) if slug_tokens else repo_name.replace("_", "-").lower()
+
+    title_tokens = []
+    for token in slug_tokens:
+        if token in ("for", "and", "the"):
+            continue
+        title_tokens.append(token)
+    if "toolkit" not in title_tokens and "skill" in title_tokens:
+        title_tokens.append("toolkit")
+    title_tokens = _dedupe_keep_order(title_tokens)
+    display_title = " ".join(_format_title_token(t) for t in title_tokens[:7]).strip()
+
+    alt_titles = []
+    if display_title:
+        alt_titles.append(display_title)
+    if "seo" in keywords:
+        alt_titles.append("GitHub SEO Repository Audit Toolkit")
+        alt_titles.append("Agentic SEO Skill for GitHub, Claude, and Codex")
+    alt_titles = _dedupe_keep_order([t for t in alt_titles if t])
+
+    return {
+        "current_name": repo_name,
+        "current_has_underscore": "_" in repo_name,
+        "current_has_hyphen": "-" in repo_name,
+        "search_intent_keywords": keywords[:12],
+        "recommended_repo_slug": recommended_slug,
+        "recommended_display_title": display_title or repo_name,
+        "alternative_titles": alt_titles[:3],
+        "notes": [
+            "Keyword suggestions are intent-based heuristics.",
+            "Search volume should be validated separately with keyword tools.",
+            "Use hyphen-separated words for slug readability and token separation.",
+        ],
+    }
+
+
 def build_audit(repo: str, token: str, cwd: str, provider: str) -> dict:
     report = {
         "timestamp_utc": utc_now_iso(),
@@ -108,6 +210,7 @@ def build_audit(repo: str, token: str, cwd: str, provider: str) -> dict:
         "api_access": {"token_present": bool(token), "repo_endpoint_ok": False, "community_endpoint_ok": False},
         "limitations": [],
         "metadata": {},
+        "title_analysis": {},
         "community_profile": {},
         "local_signals": local_file_signals(cwd),
         "findings": [],
@@ -175,6 +278,8 @@ def build_audit(repo: str, token: str, cwd: str, provider: str) -> dict:
     # Metadata checks
     if report["metadata"]:
         md = report["metadata"]
+        title_analysis = analyze_title_strategy(repo_slug=repo, metadata=md)
+        report["title_analysis"] = title_analysis
         description = (md.get("description") or "").strip()
         topics = md.get("topics") or []
         pushed_days = days_since(md.get("pushed_at"))
@@ -264,6 +369,30 @@ def build_audit(repo: str, token: str, cwd: str, provider: str) -> dict:
                 "Publish a maintenance release or documentation refresh to signal activity.",
             )
 
+        if title_analysis.get("current_has_underscore"):
+            add_finding(
+                findings,
+                "Metadata",
+                "Warning",
+                confidence,
+                "Repository title/slug uses underscore separators.",
+                f"Current repository name: `{title_analysis.get('current_name')}`",
+                "Prefer hyphen-separated words in repository slug for clearer token separation in search indexing.",
+            )
+
+        suggested_slug = title_analysis.get("recommended_repo_slug", "")
+        current_name = (title_analysis.get("current_name") or "").lower()
+        if suggested_slug and current_name and suggested_slug != current_name:
+            add_finding(
+                findings,
+                "Metadata",
+                "Info",
+                confidence,
+                "Repository title can be better aligned to search intent keywords.",
+                f"Suggested slug: `{suggested_slug}` | Suggested title: `{title_analysis.get('recommended_display_title')}`",
+                "Consider renaming repository slug and updating description/topics to reflect the suggested intent keywords.",
+            )
+
     # Community profile checks from API
     if report["community_profile"]:
         cp = report["community_profile"]
@@ -344,6 +473,16 @@ def print_text(report: dict):
         print("\nEnvironment limitations:")
         for item in report["limitations"]:
             print(f"- {item}")
+
+    title_analysis = report.get("title_analysis", {})
+    if title_analysis:
+        print("\nTitle recommendations:")
+        print(f"- Suggested slug: {title_analysis.get('recommended_repo_slug')}")
+        print(f"- Suggested title: {title_analysis.get('recommended_display_title')}")
+        if title_analysis.get("search_intent_keywords"):
+            print(
+                f"- Intent keywords: {', '.join(title_analysis['search_intent_keywords'][:8])}"
+            )
 
     print("\nTop findings:")
     for finding in report.get("findings", [])[:10]:
