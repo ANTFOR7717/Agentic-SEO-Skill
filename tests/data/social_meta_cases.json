@@ -1,0 +1,93 @@
+[
+  {
+    "name": "Complete OG and Twitter tags",
+    "html": "<!DOCTYPE html><html><head><meta property='og:title' content='My Awesome Page'><meta property='og:description' content='This is an awesome page about something amazing that will change your life forever.'><meta property='og:image' content='https://example.com/image.jpg'><meta property='og:url' content='https://example.com/page'><meta property='og:type' content='website'><meta property='og:site_name' content='Example'><meta name='twitter:card' content='summary_large_image'><meta name='twitter:title' content='My Awesome Page'><meta name='twitter:description' content='This is an awesome page about something amazing.'><meta name='twitter:image' content='https://example.com/image.jpg'><title>My Page</title></head><body></body></html>",
+    "expected": {
+      "score": 77,
+      "og_present": ["og:title", "og:description", "og:image", "og:url", "og:type", "og:site_name"],
+      "og_missing": [],
+      "twitter_present": ["twitter:card", "twitter:title", "twitter:description", "twitter:image"],
+      "twitter_missing": [],
+      "issues": [],
+      "preview": {
+        "title": "My Awesome Page",
+        "description": "This is an awesome page about something amazing that will change your life forever.",
+        "image": "https://example.com/image.jpg",
+        "site_name": "Example"
+      }
+    }
+  },
+  {
+    "name": "Missing required OG tags",
+    "html": "<!DOCTYPE html><html><head><meta property='og:title' content='Short'><title>Test</title></head><body></body></html>",
+    "expected": {
+      "score": 8,
+      "og_present": ["og:title"],
+      "og_missing": ["og:description", "og:image", "og:url", "og:type"],
+      "twitter_present": [],
+      "twitter_missing": ["twitter:card"],
+      "issues": [
+        "⚠️ og:title is too short (5 chars, min 10)",
+        "🔴 Missing required: og:description",
+        "🔴 Missing required: og:image",
+        "🔴 Missing required: og:url",
+        "🔴 Missing required: og:type",
+        "⚠️ Missing: twitter:card"
+      ]
+    }
+  },
+  {
+    "name": "OG tag too long",
+    "html": "<!DOCTYPE html><html><head><meta property='og:title' content='This is an extremely long title that exceeds the maximum length allowed for optimal social media sharing and display purposes'><meta property='og:description' content='This is a description that is definitely way too long to be effective and should be shortened to improve click-through rates and user engagement across platforms.'><meta property='og:image' content='https://example.com/image.jpg'><meta property='og:url' content='https://example.com/page'><meta property='og:type' content='website'><meta name='twitter:card' content='summary_large_image'><title>Test</title></head><body></body></html>",
+    "expected": {
+      "score": 46,
+      "og_present": ["og:title", "og:description", "og:image", "og:url", "og:type"],
+      "og_missing": []
+    }
+  },
+  {
+    "name": "Relative OG image URL",
+    "html": "<!DOCTYPE html><html><head><meta property='og:title' content='Test Title'><meta property='og:description' content='This is a test description that is long enough for OG purposes and should pass validation.'><meta property='og:image' content='/images/test.jpg'><meta property='og:url' content='https://example.com/page'><meta property='og:type' content='website'><meta name='twitter:card' content='summary_large_image'><title>Test</title></head><body></body></html>",
+    "expected": {
+      "issues": ["⚠️ og:image should be an absolute URL"]
+    }
+  },
+  {
+    "name": "Invalid Twitter card type",
+    "html": "<!DOCTYPE html><html><head><meta property='og:title' content='Test Title'><meta property='og:description' content='This is a test description that is long enough for OG purposes.'><meta property='og:image' content='https://example.com/image.jpg'><meta property='og:url' content='https://example.com/page'><meta property='og:type' content='website'><meta name='twitter:card' content='invalid_type'><title>Test</title></head><body></body></html>",
+    "expected": {
+      "issues": ["⚠️ twitter:card has invalid value 'invalid_type' — valid: summary, summary_large_image, app, player"]
+    }
+  },
+  {
+    "name": "No social meta tags at all",
+    "html": "<!DOCTYPE html><html><head><title>Test Page</title></head><body><h1>Hello World</h1></body></html>",
+    "expected": {
+      "score": 0,
+      "og_tags": {},
+      "twitter_tags": {},
+      "og_present": [],
+      "og_missing": ["og:title", "og:description", "og:image", "og:url", "og:type"],
+      "twitter_present": [],
+      "twitter_missing": ["twitter:card"],
+      "recommendations": [
+        "Add Open Graph tags for rich social media previews on Facebook, LinkedIn, etc.",
+        "Add Twitter Card tags for rich previews on X (Twitter)"
+      ]
+    }
+  },
+  {
+    "name": "HTTP error on fetch",
+    "mock_status": 404,
+    "expected": {
+      "error": "HTTP 404"
+    }
+  },
+  {
+    "name": "Request exception",
+    "mock_exception": "Connection timeout",
+    "expected": {
+      "error": "Connection timeout"
+    }
+  }
+]

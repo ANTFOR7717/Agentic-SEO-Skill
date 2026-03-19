@@ -1,0 +1,9 @@
+{
+  "parse_robots": [
+    {"content": "User-agent: *\nDisallow: /admin/\nAllow: /admin/public/", "expected_user_agents": 1, "expected_sitemaps": 0},
+    {"content": "Sitemap: https://example.com/sitemap.xml\n\nUser-agent: Googlebot\nDisallow: /private/", "expected_user_agents": 1, "expected_sitemaps": 1},
+    {"content": "User-agent: *\nDisallow: /\n\nUser-agent: GPTBot\nAllow: /", "expected_user_agents": 2},
+    {"content": "# This is a comment\nUser-agent: *\nDisallow: /tmp\n\nSitemap: https://example.com/sitemap.xml", "expected_user_agents": 1, "expected_sitemaps": 1},
+    {"content": "", "expected_user_agents": 0, "expected_sitemaps": 0}
+  ]
+}

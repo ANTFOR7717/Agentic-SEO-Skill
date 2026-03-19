@@ -1,0 +1,28 @@
+{
+  "detect_cms": [
+    {"html": "<div class='entry-content'>Test content</div>", "url": "http://example.com", "expected": "generic"},
+    {"html": "<div class='post-body'>Test</div>", "url": "http://blogspot.com", "expected": "blogger"},
+    {"html": "<div class='gh-content'>Test</div>", "url": "http://ghost.io", "expected": "ghost"},
+    {"html": "<article><p>Test</p></article>", "url": "http://example.com", "expected": "generic"}
+  ],
+  "extract_keywords_frequency": [
+    {"text": "python python python java ruby php javascript", "top_n": 2, "expected_min": 1}
+  ],
+  "extract_structured_data": [
+    {
+      "html": "<script type=\"application/ld+json\">{\"@context\": \"https://schema.org\", \"@type\": \"Article\", \"headline\": \"Single\"}</script>",
+      "expected_count": 1,
+      "expected_types": ["Article"]
+    },
+    {
+      "html": "<script type=\"application/ld+json\">[{\"@type\": \"WebPage\"}, {\"@type\": \"BlogPosting\"}]</script>",
+      "expected_count": 2,
+      "expected_types": ["WebPage", "BlogPosting"]
+    },
+    {
+      "html": "<script type=\"application/ld+json\">{\"invalid\": \"json\",}</script>",
+      "expected_count": 1,
+      "expected_errors": ["invalid_json"]
+    }
+  ]
+}

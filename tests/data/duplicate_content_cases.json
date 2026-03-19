@@ -1,0 +1,12 @@
+{
+  "shingle": [
+    {"text": "hello world hello there", "k": 2, "expected_min": 2},
+    {"text": "hi", "k": 2, "expected_min": 0},
+    {"text": "the quick brown fox jumps over the lazy dog", "k": 3, "expected_min": 3}
+  ],
+  "jaccard_from_minhash": [
+    {"sig1": [1, 2, 3, 4, 5], "sig2": [1, 2, 3, 4, 5], "expected": 1.0},
+    {"sig1": [1, 2, 3, 4, 5], "sig2": [6, 7, 8, 9, 10], "expected": 0.0},
+    {"sig1": [1, 2, 3, 4, 5], "sig2": [1, 2, 6, 7, 8], "expected_min": 0.2}
+  ]
+}

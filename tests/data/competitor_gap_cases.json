@@ -1,0 +1,10 @@
+{
+  "normalize_topic": [
+    {"text": "  Python Programming  ", "expected": "python programming"},
+    {"text": "Machine Learning", "expected": "machine learning"},
+    {"text": "Data Science!", "expected": "data science"}
+  ],
+  "extract_topic_phrases": [
+    {"topics": {"title": "python", "h1": "java"}, "expected_min": 2}
+  ]
+}

@@ -1,0 +1,59 @@
+[
+  {
+    "name": "Striking distance keyword",
+    "performance_data": [
+      {"query": "seo tips", "page": "https://example.com/seo", "position": 8, "impressions": 100, "clicks": 10, "ctr": 2.5}
+    ],
+    "expected_opportunities": 1
+  },
+  {
+    "name": "Low CTR at top position",
+    "performance_data": [
+      {"query": "buy widget", "page": "https://example.com/widget", "position": 2, "impressions": 200, "clicks": 5, "ctr": 2.5}
+    ],
+    "expected_opportunities": 1
+  },
+  {
+    "name": "High impressions, low CTR",
+    "performance_data": [
+      {"query": "free tools", "page": "https://example.com/tools", "position": 25, "impressions": 300, "clicks": 3, "ctr": 1.0}
+    ],
+    "expected_opportunities": 1,
+    "expected_type": "high_impressions_low_ctr"
+  },
+  {
+    "name": "Multiple opportunities in data",
+    "performance_data": [
+      {"query": "seo tips", "page": "https://example.com/seo", "position": 10, "impressions": 150, "clicks": 10, "ctr": 3.0},
+      {"query": "buy widget", "page": "https://example.com/widget", "position": 1, "impressions": 500, "clicks": 10, "ctr": 2.0},
+      {"query": "free tools", "page": "https://example.com/tools", "position": 20, "impressions": 250, "clicks": 2, "ctr": 0.8}
+    ],
+    "expected_opportunities": 3
+  },
+  {
+    "name": "No opportunities - good CTR",
+    "performance_data": [
+      {"query": "popular topic", "page": "https://example.com/popular", "position": 3, "impressions": 1000, "clicks": 150, "ctr": 15.0}
+    ],
+    "expected_opportunities": 0
+  },
+  {
+    "name": "Below threshold impressions",
+    "performance_data": [
+      {"query": "niche query", "page": "https://example.com/niche", "position": 5, "impressions": 30, "clicks": 1, "ctr": 3.3}
+    ],
+    "expected_opportunities": 0
+  },
+  {
+    "name": "Empty data",
+    "performance_data": [],
+    "expected_opportunities": 0
+  },
+  {
+    "name": "Position 4-20 with high impressions - striking distance",
+    "performance_data": [
+      {"query": "content marketing", "page": "https://example.com/content", "position": 12, "impressions": 75, "clicks": 5, "ctr": 6.6}
+    ],
+    "expected_opportunities": 1
+  }
+]

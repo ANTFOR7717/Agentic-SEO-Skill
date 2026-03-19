@@ -1,0 +1,32 @@
+{
+  "count_syllables": [
+    {"word": "hello", "expected": 2},
+    {"word": "world", "expected": 1},
+    {"word": "beautiful", "expected": 3},
+    {"word": "a", "expected": 1},
+    {"word": "", "expected": 0},
+    {"word": "education", "expected": 4},
+    {"word": "the", "expected": 1},
+    {"word": "serendipitous", "expected": 5}
+  ],
+  "split_sentences": [
+    {"text": "This is a sentence. This is another.", "expected": ["This is a sentence.", "This is another."]},
+    {"text": "Hello! How are you?", "expected": ["Hello!", "How are you?"]},
+    {"text": "What is this? Is it working? Yes!", "expected": ["What is this?", "Is it working?", "Yes!"]},
+    {"text": "No punctuation here", "expected": ["No punctuation here"]},
+    {"text": "", "expected": []}
+  ],
+  "is_navigation_noise": [
+    {"sentence": "Read more", "expected": true},
+    {"sentence": "Recent posts", "expected": true},
+    {"sentence": "Subscribe to comments", "expected": true},
+    {"sentence": "This is a normal sentence that explains something important to readers.", "expected": false},
+    {"sentence": "Here is a paragraph\nwith multiple\nlines of text", "expected": true},
+    {"sentence": "", "expected": true}
+  ],
+  "analyze_readability": [
+    {"text": "The cat sat on the mat. It was fat.", "expected_fre_min": 70},
+    {"text": "This is a very long sentence that goes on and on without really saying anything useful to anyone who might be reading it for educational or informational purposes.", "expected_fre_max": 40},
+    {"text": "", "expected_word_count": 0}
+  ]
+}

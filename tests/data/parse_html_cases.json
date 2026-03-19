@@ -1,0 +1,93 @@
+{
+  "title": [
+    {"html": "<html><head><title>Test Title</title></head></html>", "expected": "Test Title"},
+    {"html": "<html><head><title>  Spaced   Title  </title></head></html>", "expected": "Spaced   Title"},
+    {"html": "<html><head></head></html>", "expected": null},
+    {"html": "<html><body>No title tag</body></html>", "expected": null}
+  ],
+  "meta_description": [
+    {"html": "<html><head><meta name=\"description\" content=\"My desc\"></head></html>", "expected": "My desc"},
+    {"html": "<html><head><meta name=\"description\" content=\"\"></head></html>", "expected": ""},
+    {"html": "<html><head></head></html>", "expected": null}
+  ],
+  "meta_robots": [
+    {"html": "<html><head><meta name=\"robots\" content=\"noindex,follow\"></head></html>", "expected": "noindex,follow"},
+    {"html": "<html><head><meta name=\"robots\" content=\"index\"></head></html>", "expected": "index"},
+    {"html": "<html><head></head></html>", "expected": null}
+  ],
+  "open_graph": [
+    {"html": "<html><head><meta property=\"og:title\" content=\"OG Title\"></head></html>", "expected": {"og:title": "OG Title"}},
+    {"html": "<html><head><meta property=\"og:image\" content=\"img.jpg\"></head></html>", "expected": {"og:image": "img.jpg"}},
+    {"html": "<html><head><meta property=\"og:title\" content=\"A\"><meta property=\"og:description\" content=\"B\"></head></html>", "expected": {"og:title": "A", "og:description": "B"}},
+    {"html": "<html><head></head></html>", "expected": {}}
+  ],
+  "twitter_card": [
+    {"html": "<html><head><meta name=\"twitter:card\" content=\"summary\"></head></html>", "expected": {"twitter:card": "summary"}},
+    {"html": "<html><head><meta name=\"twitter:image\" content=\"img.png\"></head></html>", "expected": {"twitter:image": "img.png"}},
+    {"html": "<html><head></head></html>", "expected": {}}
+  ],
+  "headings": [
+    {"tag": "h1", "html": "<html><body><h1>One</h1></body></html>", "expected": ["One"]},
+    {"tag": "h1", "html": "<html><body><h1>A</h1><h1>B</h1></body></html>", "expected": ["A", "B"]},
+    {"tag": "h1", "html": "<html><body><h1></h1><h1>Valid</h1></body></html>", "expected": ["Valid"]},
+    {"tag": "h1", "html": "<html><body></body></html>", "expected": []},
+    {"tag": "h2", "html": "<html><body><h2>Sub</h2></body></html>", "expected": ["Sub"]},
+    {"tag": "h2", "html": "<html><body><h2>A</h2><h2>B</h2></body></html>", "expected": ["A", "B"]},
+    {"tag": "h3", "html": "<html><body><h3>Minor</h3></body></html>", "expected": ["Minor"]},
+    {"tag": "h3", "html": "<html><body><h3>A</h3><h3>B</h3><h3>C</h3></body></html>", "expected": ["A", "B", "C"]}
+  ],
+  "canonical": [
+    {"html": "<html><head><link rel=\"canonical\" href=\"https://example.com/page\"></head></html>", "expected": "https://example.com/page"},
+    {"html": "<html><head></head></html>", "expected": null}
+  ],
+  "hreflang": [
+    {"html": "<html><head><link rel=\"alternate\" hreflang=\"en\" href=\"/en\"></head></html>", "expected": [{"lang": "en", "href": "/en"}]},
+    {"html": "<html><head><link rel=\"alternate\" hreflang=\"en\" href=\"/en\"><link rel=\"alternate\" hreflang=\"es\" href=\"/es\"></head></html>", "expected": [{"lang": "en", "href": "/en"}, {"lang": "es", "href": "/es"}]},
+    {"html": "<html><head></head></html>", "expected": []}
+  ],
+  "images": [
+    {"html": "<html><body><img src=\"img.jpg\" alt=\"Alt text\" width=\"100\" height=\"200\"></body></html>", "base_url": null, "expected": [{"src": "img.jpg", "alt": "Alt text", "width": "100", "height": "200", "loading": null}]},
+    {"html": "<html><body><img src=\"logo.png\"></body></html>", "base_url": null, "expected": [{"src": "logo.png", "alt": null, "width": null, "height": null, "loading": null}]},
+    {"html": "<html><body><img src=\"/images/pic.jpg\" alt=\"Photo\"></body></html>", "base_url": "https://example.com", "expected": [{"src": "https://example.com/images/pic.jpg", "alt": "Photo", "width": null, "height": null, "loading": null}]},
+    {"html": "<html><body><img src=\"a.jpg\" alt=\"A\"><img src=\"b.jpg\" alt=\"B\"></body></html>", "base_url": null, "expected": [{"src": "a.jpg", "alt": "A", "width": null, "height": null, "loading": null}, {"src": "b.jpg", "alt": "B", "width": null, "height": null, "loading": null}]}
+  ],
+  "links": [
+    {"html": "<html><body><a href=\"/about\">About</a></body></html>", "base_url": "https://example.com", "expected_internal": 1, "expected_external": 0},
+    {"html": "<html><body><a href=\"https://other.com\">Link</a></body></html>", "base_url": "https://example.com", "expected_internal": 0, "expected_external": 1},
+    {"html": "<html><body><a href=\"/a\"></a><a href=\"/b\"></a></body></html>", "base_url": "https://example.com", "expected_internal": 2, "expected_external": 0},
+    {"html": "<html><body><a href=\"https://google.com\">G</a><a href=\"https://github.com\">GH</a></body></html>", "base_url": "https://example.com", "expected_internal": 0, "expected_external": 2},
+    {"html": "<html><body><a href=\"#anchor\">Anchor</a></body></html>", "base_url": "https://example.com", "expected_internal": 0, "expected_external": 0},
+    {"html": "<html><body><a href=\"javascript:void(0)\">JS</a></body></html>", "base_url": "https://example.com", "expected_internal": 0, "expected_external": 0},
+    {"html": "<html><body></body></html>", "base_url": "https://example.com", "expected_internal": 0, "expected_external": 0}
+  ],
+  "link_text": [
+    {"html": "<html><body><a href=\"/about\">About Us</a></body></html>", "base_url": "https://example.com", "expected": "About Us"}
+  ],
+  "schema": [
+    {"html": "<html><body><script type=\"application/ld+json\">{\"@type\": \"Article\", \"@context\": \"https://schema.org\"}</script></body></html>", "expected_type": "Article", "expected_status": "active"},
+    {"html": "<html><body><script type=\"application/ld+json\">{\"@type\": \"Product\"}</script></body></html>", "expected_type": "Product", "expected_status": "active"},
+    {"html": "<html><body><script type=\"application/ld+json\">{\"@type\": \"HowTo\"}</script></body></html>", "expected_status": "deprecated"},
+    {"html": "<html><body><script type=\"application/ld+json\">{\"@type\": \"FAQPage\"}</script></body></html>", "expected_status": "restricted"},
+    {"html": "<html><body><script type=\"application/ld+json\">invalid{</script></body></html>", "expected_error": "invalid_json"},
+    {"html": "<html><body><script type=\"application/ld+json\"></script></body></html>", "expected_error": "invalid_json"}
+  ],
+  "word_count": [
+    {"html": "<html><body><p>one two three</p></body></html>", "expected": 3},
+    {"html": "<html><body><p>one</p></body></html>", "expected": 1},
+    {"html": "<html><body><p>visible</p><script>hidden</script></body></html>", "expected": 1},
+    {"html": "<html><body><p>visible</p><style>.x { color: red }</style></body></html>", "expected": 1},
+    {"html": "<html><body><nav>nav text</nav><p>para</p><footer>footer text</footer><header>header text</header></body></html>", "expected": 1},
+    {"html": "<html><body></body></html>", "expected": 0}
+  ],
+  "malformed": [
+    {"html": "", "expected_title": null},
+    {"html": "   \n\t  ", "expected_title": null},
+    {"html": "<html><bad><tag>", "expected_title": null},
+    {"html": "<html><head><title>Test", "expected_title": "Test"},
+    {"html": "<p>Paragraph<p>Another", "expected_title": null},
+    {"html": "<div><p></div>", "expected_title": null},
+    {"html": "<html>", "expected_title": null},
+    {"html": "not html at all", "expected_title": null},
+    {"html": "<!DOCTYPE html><html></html>", "expected_title": null}
+  ]
+}

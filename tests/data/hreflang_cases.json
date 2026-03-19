@@ -1,0 +1,26 @@
+{
+  "validate_lang_code": [
+    {"tag": "en", "expected_valid": true, "expected_lang": "en"},
+    {"tag": "en-US", "expected_valid": true, "expected_lang": "en", "expected_region": "US"},
+    {"tag": "x-default", "expected_valid": true, "expected_lang": "x-default"},
+    {"tag": "fr-FR", "expected_valid": true, "expected_lang": "fr", "expected_region": "FR"},
+    {"tag": "eng", "expected_valid": false, "expected_lang": "eng"},
+    {"tag": "enz", "expected_valid": false, "expected_lang": "enz"},
+    {"tag": "zh", "expected_valid": false},
+    {"tag": "zh-CN", "expected_valid": true, "expected_lang": "zh", "expected_region": "CN"}
+  ],
+  "check_x_default": [
+    {"tags": [{"lang": "en", "url": "http://example.com/en"}, {"lang": "x-default", "url": "http://example.com/"}], "expected_passed": true},
+    {"tags": [{"lang": "en", "url": "http://example.com/en"}], "expected_passed": false},
+    {"tags": [{"lang": "en", "url": "http://example.com/en"}, {"lang": "x-default", "url": "http://example.com/"}, {"lang": "x-default", "url": "http://example.com/alt"}], "expected_passed": false}
+  ],
+  "check_self_reference": [
+    {"tags": [{"lang": "en", "url": "http://example.com/page"}], "page_url": "http://example.com/page", "expected_passed": true},
+    {"tags": [{"lang": "en", "url": "http://example.com/other"}], "page_url": "http://example.com/page", "expected_passed": false},
+    {"tags": [], "page_url": "http://example.com/page", "expected_passed": false}
+  ],
+  "check_protocol_consistency": [
+    {"tags": [{"url": "https://example.com/en"}, {"url": "https://example.com/fr"}], "expected_passed": true},
+    {"tags": [{"url": "http://example.com/en"}, {"url": "https://example.com/fr"}], "expected_passed": false}
+  ]
+}

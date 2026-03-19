@@ -269,26 +269,39 @@ def extract_structured_data(soup: BeautifulSoup) -> list:
             blocks.append({"error": "invalid_json", "raw_snippet": raw[:120]})
             continue
 
-        schema_type = data.get("@type", "Unknown")
-        status = "active"
-        note = ""
+        # Modern sites often wrap JSON-LD in an array [{}, {}] or a single object {}
+        if isinstance(data, dict):
+            items = [data]
+        elif isinstance(data, list):
+            items = data
+        else:
+            # Skip invalid types (e.g. string/int at top level)
+            continue
 
-        if schema_type in DEPRECATED_SCHEMA:
-            status = "deprecated"
-            note = f"{schema_type} was deprecated/removed from rich results. Remove or replace."
-        elif schema_type in RESTRICTED_SCHEMA:
-            status = "restricted"
-            note = f"{schema_type} is restricted to government/healthcare authority sites only."
+        for item in items:
+            if not isinstance(item, dict):
+                continue
 
-        blocks.append({
-            "@type": schema_type,
-            "@context": data.get("@context", ""),
-            "status": status,
-            "note": note,
-            "has_context": bool(data.get("@context")),
-            "has_type": bool(data.get("@type")),
-            "raw": data,
-        })
+            schema_type = item.get("@type", "Unknown")
+            status = "active"
+            note = ""
+
+            if schema_type in DEPRECATED_SCHEMA:
+                status = "deprecated"
+                note = f"{schema_type} was deprecated/removed from rich results. Remove or replace."
+            elif schema_type in RESTRICTED_SCHEMA:
+                status = "restricted"
+                note = f"{schema_type} is restricted to government/healthcare authority sites only."
+
+            blocks.append({
+                "@type": schema_type,
+                "@context": item.get("@context", ""),
+                "status": status,
+                "note": note,
+                "has_context": bool(item.get("@context")),
+                "has_type": bool(item.get("@type")),
+                "raw": item,
+            })
 
     return blocks
 

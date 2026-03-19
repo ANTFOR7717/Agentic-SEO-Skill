@@ -1,0 +1,13 @@
+{
+  "parse_llms_txt": [
+    {"content": "# Test Site\n> A description\n\n## Section 1\n- [Link1](http://example.com)\n- [Link2](http://example2.com): A link", "expected_title": "Test Site", "expected_description": "A description", "expected_sections": 1, "expected_links": 2},
+    {"content": "# Only Title", "expected_title": "Only Title", "expected_description": null, "expected_sections": 0, "expected_links": 0},
+    {"content": "", "expected_title": null, "expected_description": null, "expected_sections": 0, "expected_links": 0, "expect_empty_issue": true},
+    {"content": "No markdown", "expected_title": null, "expected_description": null, "expected_sections": 0, "expected_links": 0}
+  ],
+  "score_quality": [
+    {"content": "# Title\n> Description\n\n## Section\n- [Link](http://example.com)", "expected_score_min": 60},
+    {"content": "# Title only", "expected_score_min": 15, "expected_score_max": 25},
+    {"content": "", "expected_score_min": 0, "expected_score_max": 10}
+  ]
+}

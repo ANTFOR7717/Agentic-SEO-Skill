@@ -1,0 +1,48 @@
+{
+  "check_redirects": [
+    {
+      "url": "https://example.com",
+      "mock_responses": [
+        {"status": 200, "headers": {}, "time_ms": 50}
+      ],
+      "expected_hops": 0
+    },
+    {
+      "url": "https://example.com/old",
+      "mock_responses": [
+        {"status": 301, "headers": {"Location": "https://example.com/new"}, "time_ms": 30},
+        {"status": 200, "headers": {}, "time_ms": 50}
+      ],
+      "expected_hops": 1,
+      "expected_final_url": "https://example.com/new"
+    },
+    {
+      "url": "https://example.com/step1",
+      "mock_responses": [
+        {"status": 301, "headers": {"Location": "https://example.com/step2"}, "time_ms": 20},
+        {"status": 301, "headers": {"Location": "https://example.com/step3"}, "time_ms": 20},
+        {"status": 200, "headers": {}, "time_ms": 50}
+      ],
+      "expected_hops": 2,
+      "expected_final_url": "https://example.com/step3"
+    },
+    {
+      "url": "https://example.com/loop",
+      "mock_responses": [
+        {"status": 301, "headers": {"Location": "https://example.com/loop2"}, "time_ms": 10},
+        {"status": 301, "headers": {"Location": "https://example.com/loop"}, "time_ms": 10}
+      ],
+      "expected_hops": 1,
+      "expected_has_loop": true
+    },
+    {
+      "url": "http://example.com",
+      "mock_responses": [
+        {"status": 301, "headers": {"Location": "https://example.com"}, "time_ms": 30},
+        {"status": 200, "headers": {}, "time_ms": 50}
+      ],
+      "expected_hops": 1,
+      "expected_final_url": "https://example.com"
+    }
+  ]
+}

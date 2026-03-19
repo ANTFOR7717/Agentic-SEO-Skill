@@ -1,0 +1,15 @@
+{
+  "extract_entities_from_schema": [
+    {"html": "<html><head><script type=\"application/ld+json\">{\"@type\": \"Organization\", \"name\": \"Test Corp\"}</script></head></html>", "expected_count": 1, "expected_type": "Organization"},
+    {"html": "<html><head><script type=\"application/ld+json\">{\"@type\": \"Person\", \"name\": \"John Doe\"}</script></head></html>", "expected_count": 1, "expected_type": "Person"},
+    {"html": "<html><head><script type=\"application/ld+json\">{\"@type\": \"Article\"}</script></head></html>", "expected_count": 0},
+    {"html": "<html><body></body></html>", "expected_count": 0},
+    {"html": "<html><head><script type=\"application/ld+json\">[{\"@type\": \"Organization\", \"name\": \"Test1\"}, {\"@type\": \"Person\", \"name\": \"Test2\"}]</script></head></html>", "expected_count": 2}
+  ],
+  "analyze_sameas": [
+    {"same_as": [], "expected_found": 0, "expected_missing_critical": 4},
+    {"same_as": ["https://en.wikipedia.org/wiki/Test"], "expected_found": 1, "expected_missing_critical": 3},
+    {"same_as": ["https://en.wikipedia.org/wiki/Test", "https://www.wikidata.org/wiki/Q1"], "expected_found": 2, "expected_missing_critical": 2},
+    {"same_as": ["https://en.wikipedia.org/wiki/Test", "https://www.wikidata.org/wiki/Q1", "https://twitter.com/test", "https://linkedin.com/company/test"], "expected_found": 4, "expected_missing_critical": 0}
+  ]
+}

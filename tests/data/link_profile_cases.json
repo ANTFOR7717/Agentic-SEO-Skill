@@ -1,0 +1,8 @@
+{
+  "extract_links": [
+    {"html": "<html><body><a href=\"/page1\">Page 1</a></body></html>", "page_url": "https://example.com", "base_domain": "example.com", "expected_count": 1}
+  ],
+  "analyze_link_profile": [
+    {"graph": {"page1": ["page2"], "page2": []}, "crawled": ["page1", "page2"], "base_domain": "example.com", "expected_internal_min": 1}
+  ]
+}

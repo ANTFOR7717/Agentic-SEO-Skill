@@ -1,0 +1,11 @@
+{
+  "extract_internal_links": [
+    {"html": "<html><body><a href=\"/page1\">Page 1</a><a href=\"/page2\">Page 2</a></body></html>", "page_url": "https://example.com", "domain": "example.com", "expected_count": 2, "expected_internal": 2},
+    {"html": "<html><body><a href=\"https://other.com\">External</a></body></html>", "page_url": "https://example.com", "domain": "example.com", "expected_count": 1, "expected_internal": 0},
+    {"html": "<html><body><a href=\"#anchor\">Anchor</a></body></html>", "page_url": "https://example.com", "domain": "example.com", "expected_count": 0},
+    {"html": "<html><body><a href=\"javascript:void(0)\">JS</a></body></html>", "page_url": "https://example.com", "domain": "example.com", "expected_count": 0},
+    {"html": "<html><body><a href=\"/page\">Link Text</a></body></html>", "page_url": "https://example.com", "domain": "example.com", "expected_count": 1, "expected_anchor": "Link Text"},
+    {"html": "<html><body></body></html>", "page_url": "https://example.com", "domain": "example.com", "expected_count": 0},
+    {"html": "<html><body><a href=\"/page1\">Page 1</a><a href=\"/page1\">Duplicate</a></body></html>", "page_url": "https://example.com", "domain": "example.com", "expected_count": 1}
+  ]
+}

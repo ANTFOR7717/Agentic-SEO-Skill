@@ -1,0 +1,108 @@
+[
+  {
+    "name": "IndexNow key found in meta tag",
+    "html": "<!DOCTYPE html><html><head><meta name='indexnow' content='mysecretkey123'></head><body></body></html>",
+    "key": "mysecretkey123",
+    "expected": {
+      "passed": true,
+      "detail": "IndexNow key found in <meta name='indexnow'> tag."
+    }
+  },
+  {
+    "name": "IndexNow key not in meta tag",
+    "html": "<!DOCTYPE html><html><head><title>Test Page</title></head><body></body></html>",
+    "key": "mysecretkey123",
+    "expected": {
+      "passed": false,
+      "severity": "Info",
+      "finding": "No <meta name='indexnow'> tag found (optional but improves validation speed).",
+      "fix": "Add <meta name=\"indexnow\" content=\"mysecretkey123\"> to the <head> section."
+    }
+  },
+  {
+    "name": "Wrong key in meta tag",
+    "html": "<!DOCTYPE html><html><head><meta name='indexnow' content='wrongkey'></head><body></body></html>",
+    "key": "mysecretkey123",
+    "expected": {
+      "passed": false,
+      "severity": "Info",
+      "finding": "No <meta name='indexnow'> tag found (optional but improves validation speed)."
+    }
+  },
+  {
+    "name": "Empty HTML",
+    "html": "",
+    "key": "mysecretkey123",
+    "expected": {
+      "passed": false,
+      "severity": "Info",
+      "finding": "No <meta name='indexnow'> tag found (optional but improves validation speed)."
+    }
+  },
+  {
+    "name": "Key file found and matches",
+    "test_key_file": true,
+    "site_url": "https://example.com",
+    "key": "mysecretkey123",
+    "key_file_status": 200,
+    "key_file_body": "mysecretkey123",
+    "expected": {
+      "passed": true,
+      "detail": "Key file found at https://example.com/mysecretkey123.txt",
+      "url": "https://example.com/mysecretkey123.txt"
+    }
+  },
+  {
+    "name": "Key file exists but key doesn't match",
+    "test_key_file": true,
+    "site_url": "https://example.com",
+    "key": "mysecretkey123",
+    "key_file_status": 200,
+    "key_file_body": "wrongkey",
+    "expected": {
+      "passed": false,
+      "severity": "Critical",
+      "finding": "Key file exists at https://example.com/mysecretkey123.txt but does not contain the expected key.",
+      "fix": "Update https://example.com/mysecretkey123.txt to contain only the key value: mysecretkey123"
+    }
+  },
+  {
+    "name": "Key file not found (404)",
+    "test_key_file": true,
+    "site_url": "https://example.com",
+    "key": "mysecretkey123",
+    "key_file_status": 404,
+    "key_file_body": "",
+    "expected": {
+      "passed": false,
+      "severity": "Critical",
+      "finding": "Key file not found at https://example.com/mysecretkey123.txt (HTTP 404).",
+      "fix": "Create a text file at https://example.com/mysecretkey123.txt containing only: mysecretkey123"
+    }
+  },
+  {
+    "name": "Robots.txt contains IndexNow reference",
+    "test_robots": true,
+    "site_url": "https://example.com",
+    "key": "mysecretkey123",
+    "robots_status": 200,
+    "robots_body": "User-agent: *\nDisallow: /private/\nIndexNow: mysecretkey123",
+    "expected": {
+      "passed": true,
+      "detail": "IndexNow reference found in robots.txt."
+    }
+  },
+  {
+    "name": "Robots.txt has no IndexNow reference",
+    "test_robots": true,
+    "site_url": "https://example.com",
+    "key": "mysecretkey123",
+    "robots_status": 200,
+    "robots_body": "User-agent: *\nDisallow: /private/",
+    "expected": {
+      "passed": null,
+      "severity": "Info",
+      "finding": "No IndexNow reference in robots.txt (not required, just informational)."
+    }
+  }
+]

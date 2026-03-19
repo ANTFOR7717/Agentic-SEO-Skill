@@ -1,0 +1,11 @@
+{
+  "validate_jsonld": [
+    {"html": "<html><body></body></html>", "expected_errors": []},
+    {"html": "<html><head><script type=\"application/ld+json\">{\"@type\": \"Article\", \"@context\": \"https://schema.org\"}</script></head></html>", "expected_error_count": 0},
+    {"html": "<html><head><script type=\"application/ld+json\">{\"@type\": \"HowTo\", \"@context\": \"https://schema.org\"}</script></head></html>", "expected_error_count": 1},
+    {"html": "<html><head><script type=\"application/ld+json\">{\"@type\": \"FAQPage\", \"@context\": \"https://schema.org\"}</script></head></html>", "expected_error_count": 1},
+    {"html": "<html><head><script type=\"application/ld+json\">{\"@type\": \"Organization\", \"@context\": \"https://schema.org\", \"name\": \"[Business Name]\"}</script></head></html>", "expected_error_count": 1},
+    {"html": "<html><head><script type=\"application/ld+json\">invalid{</script></head></html>", "expected_error_count": 1},
+    {"html": "<html><head><script type=\"application/ld+json\">{\"@type\": \"Article\", \"@context\": \"https://schema.org\"}</script></head></html>", "expected_error_count": 0}
+  ]
+}

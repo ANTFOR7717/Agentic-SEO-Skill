@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Missing required file finding",
+    "finding": {"finding": "Missing required repository file: CONTRIBUTING.md"},
+    "expected_key": "missing-required:contributing"
+  },
+  {
+    "name": "Missing recommended artifact finding",
+    "finding": {"finding": "Missing recommended trust artifact: SECURITY.md"},
+    "expected_key": "missing-recommended:security"
+  },
+  {
+    "name": "Missing community profile component",
+    "finding": {"finding": "Missing community profile component: code_of_conduct"},
+    "expected_key": "community-profile-missing:code_of_conduct"
+  },
+  {
+    "name": "Generic finding",
+    "finding": {"finding": "This is a generic finding about something."},
+    "expected_key": "this is a generic finding about something"
+  }
+]
