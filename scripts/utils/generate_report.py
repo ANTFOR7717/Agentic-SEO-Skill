@@ -345,26 +345,26 @@ def collect_data(url: str) -> dict:
     data["environment"] = detect_environment(page_html, url)
 
     analyses = [
-        ("robots", "robots_checker.py", [url]),
-        ("security", "security_headers.py", [url]),
-        ("social", "social_meta.py", [url]),
-        ("redirects", "redirect_checker.py", [url]),
-        ("llms_txt", "llms_txt_checker.py", [url]),
-        ("broken_links", "broken_links.py", [url, "--workers", "5", "--timeout", "8"]),
-        ("internal_links", "internal_links.py", [url, "--depth", "1", "--max-pages", "15"]),
-        ("pagespeed", "pagespeed.py", [url, "--strategy", "mobile"]),
+        ("robots", "../technical/robots_checker.py", [url]),
+        ("security", "../technical/security_headers.py", [url]),
+        ("social", "../social/social_meta.py", [url]),
+        ("redirects", "../technical/redirect_checker.py", [url]),
+        ("llms_txt", "../technical/llms_txt_checker.py", [url]),
+        ("broken_links", "../links/broken_links.py", [url, "--workers", "5", "--timeout", "8"]),
+        ("internal_links", "../links/internal_links.py", [url, "--depth", "1", "--max-pages", "15"]),
+        ("pagespeed", "../performance/pagespeed.py", [url, "--strategy", "mobile"]),
         # New analysis scripts (supplementary — failures don't block report)
-        ("entity", "entity_checker.py", [url]),
-        ("link_profile", "link_profile.py", [url, "--max-pages", "20"]),
-        ("hreflang", "hreflang_checker.py", [url]),
-        ("duplicate_content", "duplicate_content.py", [url]),
+        ("entity", "../schema/entity_checker.py", [url]),
+        ("link_profile", "../links/link_profile.py", [url, "--max-pages", "20"]),
+        ("hreflang", "../technical/hreflang_checker.py", [url]),
+        ("duplicate_content", "../content/duplicate_content.py", [url]),
     ]
 
     # Add parse_html and readability if page was fetched
     if html_path:
-        analyses.append(("onpage", "parse_html.py", [html_path, "--url", url]))
-        analyses.append(("readability", "readability.py", [html_path]))
-        analyses.append(("article", "article_seo.py", [url]))
+        analyses.append(("onpage", "../fetch/parse_html.py", [html_path, "--url", url]))
+        analyses.append(("readability", "../content/readability.py", [html_path]))
+        analyses.append(("article", "../content/article_seo.py", [url]))
 
     for name, script, args in analyses:
         print(f"  ⏳ Running {script}...")
@@ -1315,7 +1315,7 @@ tr:hover td {{ background: rgba(99,102,241,0.03); }}
                     <tr><td>Title</td><td>{(op.get('title','') or '—')[:70]}</td><td>{len(op.get('title','') or '')}</td></tr>
                     <tr><td>Meta Description</td><td>{(op.get('meta_description','') or '—')[:100]}</td><td>{len(op.get('meta_description','') or '')}</td></tr>
                     <tr><td>H1</td><td>{(op.get('h1',[''])[0] if isinstance(op.get('h1'), list) and op.get('h1') else op.get('h1','') or '—')[:70]}</td><td>—</td></tr>
-                    <tr><td>Canonical</td><td class="link-url">{op.get('canonical','—')[:80]}</td><td>—</td></tr>
+                    <tr><td>Canonical</td><td class="link-url">{(op.get('canonical') or '—')[:80]}</td><td>—</td></tr>
                 </tbody>
             </table>
             {render_recommendations(op)}
