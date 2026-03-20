@@ -820,9 +820,19 @@ def generate_html(data: dict, scores: dict) -> str:
         val = og.get(tag, "")
         status = '<span class="badge pass">✅</span>' if val else '<span class="badge critical">Missing</span>'
         social_rows += f'<tr><td>{tag}</td><td>{status}</td><td>{val[:60] if val else "—"}</td></tr>'
+    # Optional OG tags
+    for tag in ["og:locale"]:
+        val = og.get(tag, "")
+        status = '<span class="badge pass">✅</span>' if val else '<span class="badge info">Optional</span>'
+        social_rows += f'<tr><td>{tag}</td><td>{status}</td><td>{val[:60] if val else "—"}</td></tr>'
     for tag in ["twitter:card", "twitter:title", "twitter:description", "twitter:image", "twitter:site"]:
         val = tw.get(tag, "")
         status = '<span class="badge pass">✅</span>' if val else '<span class="badge warning">Missing</span>'
+        social_rows += f'<tr><td>{tag}</td><td>{status}</td><td>{val[:60] if val else "—"}</td></tr>'
+    # Optional Twitter tags
+    for tag in ["twitter:creator"]:
+        val = tw.get(tag, "")
+        status = '<span class="badge pass">✅</span>' if val else '<span class="badge info">Optional</span>'
         social_rows += f'<tr><td>{tag}</td><td>{status}</td><td>{val[:60] if val else "—"}</td></tr>'
 
     # AI Crawlers details
