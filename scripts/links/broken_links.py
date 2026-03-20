@@ -155,6 +155,25 @@ def check_broken_links(url: str, internal_only: bool = False,
         for future in as_completed(futures):
             checked.append(future.result())
 
+    # Check twitter.com links - convert to x.com and retest with GET (HEAD returns 403)
+    twitter_links = [l for l in checked if "twitter.com" in l.get("url", "")]
+    if twitter_links:
+        for link in twitter_links:
+            original_url = link["url"]
+            new_url = original_url.replace("twitter.com", "x.com")
+            try:
+                resp = requests.get(new_url, timeout=5, allow_redirects=True, headers=HEADERS, stream=True)
+                if resp.status_code == 200:
+                    link["url"] = new_url
+                    link["status"] = 200
+                    link["note"] = "Converted to x.com - valid"
+                elif resp.status_code == 404:
+                    link["status"] = 404
+                    link["note"] = "Not found on x.com"
+                resp.close()
+            except Exception as e:
+                link["note"] = f"Could not verify: {e}"
+
     result["checked"] = len(checked)
 
     for link in checked:

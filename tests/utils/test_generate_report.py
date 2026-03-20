@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "scripts"))
 
-from utils.generate_report import detect_environment, run_script
+from utils.generate_report import detect_environment, run_script, generate_html
 
 
 class TestGenerateReport(unittest.TestCase):
@@ -145,6 +145,48 @@ class TestGenerateReport(unittest.TestCase):
 
             result = run_script("test_script.py", [])
             self.assertIn("error", result["error"].lower())
+
+    def test_social_meta_optional_tags(self):
+        data = {
+            "url": "https://example.com",
+            "domain": "example.com",
+            "timestamp": "2026-01-01T00:00:00",
+            "environment": {"primary": "WordPress", "runtime": "Managed CMS", "confidence": "high", "signals": [], "alternatives": []},
+            "sections": {
+                "social": {
+                    "score": 85,
+                    "og_tags": {"og:title": "Test", "og:description": "Desc", "og:image": "img.jpg", "og:url": "https://example.com", "og:type": "website"},
+                    "twitter_tags": {"twitter:card": "summary_large_image", "twitter:title": "Test", "twitter:description": "Desc", "twitter:image": "img.jpg"},
+                }
+            },
+            "environment_fixes": []
+        }
+        scores = {"categories": {"social": 85}, "overall": 85}
+        html = generate_html(data, scores)
+        self.assertIn("og:locale", html)
+        self.assertIn("twitter:creator", html)
+        self.assertIn("Optional", html)
+
+    def test_social_meta_all_present(self):
+        data = {
+            "url": "https://example.com",
+            "domain": "example.com",
+            "timestamp": "2026-01-01T00:00:00",
+            "environment": {"primary": "WordPress", "runtime": "Managed CMS", "confidence": "high", "signals": [], "alternatives": []},
+            "sections": {
+                "social": {
+                    "score": 100,
+                    "og_tags": {"og:title": "Test", "og:description": "Desc", "og:image": "img.jpg", "og:url": "https://example.com", "og:type": "website", "og:site_name": "Test", "og:locale": "en_US"},
+                    "twitter_tags": {"twitter:card": "summary_large_image", "twitter:title": "Test", "twitter:description": "Desc", "twitter:image": "img.jpg", "twitter:site": "@test", "twitter:creator": "@test"},
+                }
+            },
+            "environment_fixes": []
+        }
+        scores = {"categories": {"social": 100}, "overall": 100}
+        html = generate_html(data, scores)
+        self.assertIn("og:locale", html)
+        self.assertIn("twitter:creator", html)
+        self.assertIn("✅", html)
 
 
 if __name__ == "__main__":
